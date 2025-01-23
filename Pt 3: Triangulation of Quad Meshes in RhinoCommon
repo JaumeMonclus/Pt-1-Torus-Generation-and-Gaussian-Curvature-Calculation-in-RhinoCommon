@@ -1,0 +1,62 @@
+import Rhino.Geometry as rg
+
+# function for mesh triangulation 
+
+def triangulate_mesh(quad_mesh):
+
+    #check if the quad mesh contaisn quads
+
+    if quad_mesh.Faces.QuadCount == 0:
+        print('this mesh only contains triangles')
+        return quad_mesh
+    # extract all quads
+
+    faces = quad_mesh.Faces
+
+    #tot aixo son propietats, no funcions o metodes. I en aqeust cas van sense parentesis
+
+    num_faces = quad_mesh.Faces.Count
+    triangles = []
+    for i in range(num_faces):
+
+        #extract each face and evaluate
+
+        f = faces[i]
+
+        #check if the face is quad or a triangle
+
+        if f.IsQuad == True :
+            
+            #triangulation code#
+
+            tria_1 = rg.MeshFace(f[0],f[1],f[2])
+            tria_2 = rg.MeshFace(f[2],f[3],f[0])
+            
+            #appending the faces in a list
+
+            triangles.append(tria_1)
+            triangles.append(tria_2)
+
+        else:
+            triangles.append(f)
+    
+    
+
+    tri_mesh = rg.Mesh()
+
+    vertices = tri_mesh.Vertices.AddVertices(quad_mesh.Vertices.ToPoint3dArray())
+
+    tri_mesh.Faces.AddFaces(triangles)
+    
+    return tri_mesh, tri_mesh.Vertices.ToPoint3dArray()
+
+
+#call the triangulation
+
+tri_mesh, vertices = triangulate_mesh(qm)
+
+
+#OUTPUTS
+
+M = tri_mesh
+v = vertices
