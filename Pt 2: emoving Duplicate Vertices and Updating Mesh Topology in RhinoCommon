@@ -1,0 +1,98 @@
+import Rhino.Geometry as rg
+
+def remove_duplicate_points(pts, tolerance=1e-3):
+    # Initialize point cloud
+    cloud = rg.PointCloud()
+
+    # Create a dictionary to store key-value pairs
+    maps = {}
+
+    # Loop through all the original points
+    num_points = len(pts)
+    for index in range(num_points):
+        test_point = pts[index]
+
+        # Find the closest point in the cloud
+        index_map = cloud.ClosestPoint(test_point)
+
+        # Flag for handling the case where the cloud is empty
+        if index_map == -1:
+            cloud.Add(test_point)
+            index_map = cloud.Count - 1
+        else:
+            cloud_point = cloud[index_map].Location
+
+            # Compare the distance between the test_point and the cloud_point
+            dist = test_point.DistanceTo(cloud_point)
+
+            # Check if the point is duplicated
+            if dist > tolerance:
+                # Case where the point is not duplicated
+                cloud.Add(test_point)
+                index_map = cloud.Count - 1
+        
+        print(str(index) + " :: " + str(index_map))
+        # Filling the dictionary
+        maps[index] = index_map
+
+    # Return points
+    return cloud.GetPoints(), maps
+
+# Function for updating face toplogies
+def updating_mesh_faces(mesh_old, indices_map):
+    # Update the indices of the faces in the mesh
+    faces_new_indices = []
+    # Collect all the faces of the old mesh
+    faces_old_indices = mesh_old.Faces
+    # Calculate the number of faces
+    num_faces = mesh_old.Faces.Count
+
+    # Start the loop for updating the faces
+    for index_face in range(num_faces):
+        face_old = faces_old_indices[index_face]
+
+        # Collect old indices
+        idx0_old = face_old.A
+        idx1_old = face_old.B
+        idx2_old = face_old.C
+        idx3_old = face_old.D
+
+        # Update indices with the indices_map
+        idx0_new = indices_map[idx0_old]
+        idx1_new = indices_map[idx1_old]
+        idx2_new = indices_map[idx2_old]
+        idx3_new = indices_map[idx3_old]
+
+        # Update face
+        face_new = rg.MeshFace(idx0_new, idx1_new, idx2_new, idx3_new)
+        # Store the new face
+        faces_new_indices.append(face_new)
+    
+    # return the new list of updated faces
+    return faces_new_indices
+
+
+# Extract vertices from the mesh
+vertices_duplicates = m.Vertices.ToPoint3dArray()
+
+# Call function to remove duplciate vertices
+result = remove_duplicate_points(vertices_duplicates)
+vertices_unique = result[0]
+indices_map = result[1]
+
+# call function to create faces with new vertices
+faces_updated = updating_mesh_faces(m, indices_map)
+
+# Construct a new mesh
+mesh_new = rg.Mesh()
+mesh_new.Vertices.AddVertices(vertices_unique)
+mesh_new.Faces.AddFaces(faces_updated)
+mesh_new.Normals.ComputeNormals()
+
+# Compute curvature
+curvature = mesh_new.ComputeCurvatureApproximation(1)[1]
+
+# Outputs
+Vertices = result[0]
+M = mesh_new
+Gaussian = curvature
