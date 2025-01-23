@@ -1,0 +1,23 @@
+import Rhino.Geometry as rg
+
+
+
+vn = m.Vertices.GetConnectedVertices(vertex_index)
+
+#valence result
+Valence = len(vn)
+#vertex segons l'index
+Vertex = m.Vertices[vertex_index]
+#els index dels neigbours
+NVIndices = vn
+#els vertex del point que hem seleccionat
+NVVertices = [ m.Vertices[i] for i in vn ]
+#face Indices
+NIndicesFaces = m.Vertices.GetVertexFaces(vertex_index)
+#topological vertex
+topology_vertex_index = m.TopologyVertices.TopologyVertexIndex(vertex_index)
+print(str(vertex_index) + ':' + str(topology_vertex_index))
+#edges index
+NIndicesEdges = m.TopologyVertices.ConnectedEdges(topology_vertex_index)
+#edge length
+NEdges = [m.TopologyEdges.EdgeLine(i) for i in NIndicesEdges]
