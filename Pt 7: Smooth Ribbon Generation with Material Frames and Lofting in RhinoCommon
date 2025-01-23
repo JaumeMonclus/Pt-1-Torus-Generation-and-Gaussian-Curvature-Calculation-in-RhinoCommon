@@ -1,0 +1,113 @@
+import Rhino.Geometry as rg
+import ghpythonlib.treehelpers as th
+
+
+num_branches = edges.BranchCount
+
+num_sampling_segments = 100
+
+ribbons = []
+
+for i in range(num_branches):
+
+    #iterate through all the branches
+
+    edge_branch = edges.Branch(i)
+
+    #join curves 
+
+    curves = rg.Curve.JoinCurves(edge_branch)
+    
+    ribbons_per_family = []
+    
+    num_ribbons = len(curves)
+    
+    for j in range(num_ribbons):
+
+        #extract the polyline curve and converte it into a polyline
+
+        pl = curves[j].ToPolyline()
+
+        #creatre a smooth version of the polyline
+
+        crv = rg.Curve.CreateInterpolatedCurve(pl,3)
+
+        # Smooth version. Extract different points and eval normals and tangencies
+
+        t_params = crv.DivideByCount(num_sampling_segments, True)
+        
+        #create a list with the material frames
+
+        cs_list = []
+        frame_list = []
+        for t in t_params:
+
+            #create a test point
+
+            p = crv.PointAt(t)
+
+            #extract mesh point
+
+            mp_pt = m.ClosestMeshPoint(p,0.0)
+
+            #compute a normal
+
+            p_normal = m.NormalAt(mp_pt)
+
+            #extract the tangent
+
+            p_tangent = crv.TangentAt(t)
+
+            # Compute the cross product
+
+            p_cross = rg.Vector3d.CrossProduct(p_normal, p_tangent)
+
+            # Matrial Plane/Frame
+
+            mat_frame = rg.Plane(p, p_cross, p_normal)
+
+            #saving it into an empty list
+
+            frame_list.append(mat_frame)
+
+            # Create a rectangular section
+
+            x_dom = rg.Interval(-0.5*width,0.5*width)
+            y_dom = rg.Interval(-0.5*height,0.5*height)
+            rec = rg.Rectangle3d(mat_frame, x_dom, y_dom).ToNurbsCurve()
+
+
+            #Store the values
+
+            cs_list.append(rec)
+
+        brep_list = rg.Brep.CreateFromLoft(cs_list, rg.Point3d.Unset, rg.Point3d.Unset, rg.LoftType.Normal, True)
+
+        for brep in brep_list:
+            
+            ribbons_per_family.append(brep)
+
+        ribbons.append(ribbons_per_family)
+
+
+ribbons_tree = th.list_to_tree(ribbons)
+
+#OUTPUT
+
+Ribbons = ribbons_tree
+
+
+
+
+
+
+
+
+
+
+
+       
+
+
+
+
