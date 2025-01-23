@@ -1,0 +1,105 @@
+import Rhino.Geometry as rg
+import ghpythonlib.treehelpers as th
+
+#import Grasshopper as gh
+#import clr
+#find the path of kangaroo  
+#kangaroo_path = gh.Folders.PluginFolder + 'Components\KangarooSolver.dll'
+#print(kangaroo_path)
+#clr.AddReference(kangaroo_path)
+
+import KangarooSolver as ks
+
+#Extract families of ribbons
+
+num_branches = edges.BranchCount
+ribbons = []
+goals = []
+#per cada index de les branch generem una llista de corves
+
+for i in range(num_branches):
+
+    edge_lines = edges.Branch(i)
+
+    #Create a list of goals per branch
+
+    goals_per_branch = []
+
+    #join all the lines to create polylines representing ribbons
+
+    edge_curves = [j.ToNurbsCurve() for j in edge_lines]
+    
+    curves = list(rg.Curve.JoinCurves(edge_curves))
+
+    #converting curves into polylines
+
+    polylines = [crv.ToPolyline() for crv in curves]
+
+    #Loop for the polylines
+
+    num_polylines = len(polylines)
+
+    for k in range(num_polylines):
+        pl = polylines[k]
+
+        #Extract a number of segments per polylines
+
+        num_segments = pl.SegmentCount
+
+        #Check if the polyline is close
+
+        if pl.IsClosed == False:
+            num_segments = pl.SegmentCount-1
+
+
+        for g in range (num_segments):
+
+            ln_a = pl.SegmentAt(g)
+
+            ln_b = pl.SegmentAt(g+1)
+            
+            if pl.IsClosed == True and g == num_segments-1:
+
+                ln_b = pl.SegmentAt(0)
+
+            #Angle Constraint
+
+            angle_goal = ks.Goals.Angle(ln_a, ln_b, 0, 0.1)
+
+            goals_per_branch.append(angle_goal)
+
+        for z in range(num_segments):
+            
+            ln = pl.SegmentAt(z)
+
+            #Length Constraint
+
+            length_goal = ks.Goals.Spring(ln.From , ln.To , ln.Length,100)
+
+            goals_per_branch.append(length_goal)
+
+    #always check with print in python.So you know what we are getting. print(curves) in this case. SInce we get the claudators '[]' use  LIST ()
+
+    #Store all the ribbons
+
+    ribbons.append(polylines)
+
+    #Store all goals
+
+    goals.append(goals_per_branch)
+
+#making sure we get a list not an object
+
+ribbons_tree = th.list_to_tree(ribbons)
+
+goals_tree = th.list_to_tree(goals)
+
+#outputs
+
+R = ribbons_tree
+G = goals_tree
+
+
+
+
+
