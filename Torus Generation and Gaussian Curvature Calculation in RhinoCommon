@@ -1,0 +1,64 @@
+import Rhino.Geometry as rg
+import math
+
+# Define domain of u and v
+u_domain = rg.Interval(0, 2 * math.pi)
+v_domain = rg.Interval(0, 2 * math.pi)
+# Define u and v step
+u_step = u_domain.Length / (uCount-1)
+v_step = v_domain.Length / (vCount-1)
+
+pts = []
+# Step 1: creation of points
+for i in range(uCount):
+    for j in range(vCount):
+        u = u_step * i
+        v = v_step * j
+
+        # Torus equations
+        x = ( c + a * math.cos(v) ) * math.cos(u)
+        y = ( c + a * math.cos(v) ) * math.sin(u)
+        z = a * math.sin(v)
+
+        # Create a point and store
+        p = rg.Point3d(x,y,z)
+        pts.append(p)
+
+mesh = rg.Mesh()
+# Step 2:  Creation for the faces
+for i in range(uCount-1):
+    for j in range(vCount-1):
+        # Compute global indices
+        idx0 = i * vCount + j
+        idx1 = i * vCount + j + 1
+        idx2 = (i+1) * vCount + j + 1  
+        idx3 = (i+1) * vCount + j
+
+        # Create the face
+        f = rg.MeshFace(idx0,idx1,idx2,idx3)
+        mesh.Faces.AddFace(f)
+
+mesh.Vertices.AddVertices(pts)
+mesh.Normals.ComputeNormals()
+
+# Extract geometric quantities
+# Create a nurbs surface
+torus_srf = rg.NurbsSurface.CreateFromPoints(pts, uCount, vCount, 3, 3)
+torus_srf_periodic = rg.NurbsSurface.CreatePeriodicSurface(torus_srf, 0, True)
+torus_srf_periodic = rg.NurbsSurface.CreatePeriodicSurface(torus_srf_periodic, 1, True)
+
+# Calculate curvatures based on a surface
+gaussian = []
+for p in pts:
+    # Call closest point and apply slicing to the result
+    uv = torus_srf_periodic.ClosestPoint(p)[1:]
+    curvature = torus_srf_periodic.CurvatureAt(uv[0], uv[1])
+    gaussian.append(curvature.Gaussian)
+
+
+# OUTPUTS
+Vertices = pts
+M = mesh
+S = torus_srf
+SP = torus_srf_periodic
+Gaussian = gaussian
