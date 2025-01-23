@@ -1,0 +1,104 @@
+import Rhino.Geometry as rg
+import ghpythonlib.treehelpers as th
+
+#create a function for a Kagomi Triaxial Weaving Pattern on a Regaular Mesh
+
+def triaxial_weaving_pattern(trimesh, parameter = 0.5, thickness = 0.1):
+    
+    #Conditional statement for quad faces
+
+    if trimesh.Faces.QuadCount != 0:
+        return None
+    
+    #initialize three sets of lists
+
+    family_a, family_b, family_c = [], [], []
+
+    #Creation of the triaxial pattern
+
+    num_faces = trimesh.Faces.Count
+
+    #starting the loop
+
+    for face_index in range(num_faces):
+
+        #extract triangular face
+
+        tria = trimesh.Faces[face_index]
+
+        #include a conditional statement to check the face
+
+        idx_a, idx_b, idx_c = tria.A, tria.B, tria.C
+
+        #collect the positions
+
+        pos_a, pos_b, pos_c = trimesh.Vertices[idx_a], trimesh.Vertices[idx_b], trimesh.Vertices[idx_c] 
+
+        #Create edges
+
+        edge_ab, edge_bc, edge_ca = rg.Line(pos_a,pos_b), rg.Line(pos_b,pos_c), rg.Line(pos_c, pos_a)
+
+        #finding the midpoint / creating a subdivision
+
+        pos_ab, pos_bc, pos_ca = edge_ab.PointAt(parameter), edge_bc.PointAt(parameter), edge_ca.PointAt(parameter)
+        
+        #create ribbons offstets
+
+        mp_ab = trimesh.ClosestMeshPoint(pos_ab, 0.0)
+        mp_bc = trimesh.ClosestMeshPoint(pos_bc, 0.0)
+        mp_ca = trimesh.ClosestMeshPoint(pos_ca, 0.0)
+        
+        #Extract the normals at the point
+
+        normal_ab = trimesh.NormalAt(mp_ab)
+        normal_bc = trimesh.NormalAt(mp_bc)
+        normal_ca = trimesh.NormalAt(mp_ca)
+        
+        #create a line between midpoints
+
+        mid_edge1 = rg.Line(pos_ab + normal_ab * thickness, pos_bc - normal_bc * thickness)
+        mid_edge2 = rg.Line(pos_bc + normal_bc * thickness, pos_ca - normal_ca * thickness)
+        mid_edge3 = rg.Line(pos_ca + normal_ca * thickness, pos_ab - normal_ab * thickness)
+
+        #store the values
+
+        family_a.append(mid_edge1)
+        family_b.append(mid_edge2)
+        family_c.append(mid_edge3)
+
+        family_a_nurbs = [i.ToNurbsCurve() for i in family_a]
+        joined_family_a_nurbs = rg.Curve.JoinCurves(family_a_nurbs, 0.1, True)
+
+
+    #Collect all the families in one single list
+
+    families = [family_a, family_b, family_c]
+    #families = [joined_family_a_nurbs , family_b, family_c]
+
+    #this is a nested list so we use the grasshopper helper. Convert nested list into a grasshopper tree
+
+    families_tree = th.list_to_tree(families)
+
+    #all families converted
+
+    return  families_tree
+
+
+trimesh.Flip(True,True,True)
+trimesh.Normals.ComputeNormals()
+
+
+#call the function to generate the triaxial pattern
+
+ribbons = triaxial_weaving_pattern(trimesh, parameter, thickness)
+
+#OUTPUTS
+
+edge_ribbons = ribbons
+
+
+
+
+    
+
+
